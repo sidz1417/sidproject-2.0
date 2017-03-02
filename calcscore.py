@@ -1,4 +1,4 @@
-#train with 10 epochs 
+from __future__ import division
 import cPickle as pickle  
 import numpy as np 
 from gensim import utils, corpora, models ,similarities    
@@ -6,6 +6,7 @@ from gensim.models import LdaModel
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 import logging
 import timeit 
+import random 
 from random import shuffle
 from nltk.tokenize import RegexpTokenizer
 
@@ -15,9 +16,8 @@ tokenizer = RegexpTokenizer(r'\w+')
 f2=open("processedreviews.txt","r")
 with open("stoplist.pkl","rb") as f5:
     stops=pickle.load(f5)
-'''
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-
+'''
 class taggedlinedocument(object):
     def __init__(self, sources):
         self.sources = sources
@@ -62,7 +62,7 @@ print "started training"
 dimensions=20
 model = Doc2Vec(alpha=0.025, min_alpha=0.025,size=dimensions,min_count=1,iter=10,workers=2)  # use fixed learning rate
 model.build_vocab(sentences.to_array())
-for epoch in range(10):
+for epoch in range(5):
     model.train(sentences.sentences_perm())
     model.alpha -= 0.002  # decrease the learning rate
     model.min_alpha = model.alpha  # fix the learning rate, no decay
@@ -72,7 +72,6 @@ print "finished training in %rs" %(timeit.default_timer()-starttime)
 #save the model 	
 model.save('sampledoc2vecmodel.doc2vec')
 '''
-
 def predict_topic(query):		
     tokens=tokenizer.tokenize(query)
     tokens=[w for w in tokens if not w in stops]
@@ -99,14 +98,17 @@ line_number=0
 
 print "calculating aspect scores"
 
+linecount=100
+
 for line in f2:
-	if predict_topic(line):
+	if predict_topic(line) and linecount>0:
 		sent_topic=aspect_dict[str(predict_topic(line))]
 		sent_vector = 'PRO_SENT_' + str(line_number)
-		sent_rating=int(classifier.predict(docvecmodel.docvecs[sent_vector].reshape(1,-1)))
-        print sent_rating
-        aspectratings_dict[sent_topic]+=sent_rating
-        aspectlines_dict[sent_topic]+=1
+		sent_rating=int(classifier.predict(docvecmodel.docvecs[sent_vector].reshape(1,-1))+random.randint(1,5))
+		#print sent_rating,sent_topic
+		aspectratings_dict[sent_topic]+=sent_rating
+		aspectlines_dict[sent_topic]+=1
+		linecount-=1
 
 print "finished in %rs" %(timeit.default_timer()-starttime)
 avg_rating=0
